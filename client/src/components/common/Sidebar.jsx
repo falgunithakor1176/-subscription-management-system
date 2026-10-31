@@ -12,6 +12,7 @@ import {
   LayoutDashboard,
   LogOut,
   Package,
+  RefreshCw,
   ShieldCheck,
   UserCircle,
   Users,
@@ -92,11 +93,11 @@ const Sidebar = ({ isOpen, onClose }) => {
             </Link>
           </div>
 
-          {/* Operations: Customers, Products, Plans, Quotations */}
+          {/* Operations: Customers, Products, Plans, Quotations, Subscriptions */}
           <div className="shared-sidebar__section">
             <span className="shared-sidebar__section-title">Operations</span>
 
-            {/* Customers (Admin & Staff) - Strictly active on /customers and /customers/:id */}
+            {/* Customers (Admin & Staff) */}
             {(isAdmin || isStaff) && (
               <Link
                 to="/customers"
@@ -140,6 +141,17 @@ const Sidebar = ({ isOpen, onClose }) => {
             >
               <FileText size={17} aria-hidden="true" />
               <span>Quotations</span>
+            </Link>
+
+            {/* Subscriptions (All authenticated roles) */}
+            <Link
+              to="/subscriptions"
+              className={`shared-sidebar__link ${isRouteActive('/subscriptions') ? 'shared-sidebar__link--active' : ''}`}
+              id="sidebar-nav-subscriptions"
+              onClick={onClose}
+            >
+              <RefreshCw size={17} aria-hidden="true" />
+              <span>Subscriptions</span>
             </Link>
           </div>
 
