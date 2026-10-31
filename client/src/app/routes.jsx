@@ -18,12 +18,15 @@ import ProductsPage from '../modules/products/pages/ProductsPage.jsx';
 import ProductDetailPage from '../modules/products/pages/ProductDetailPage.jsx';
 import PlansPage from '../modules/plans/pages/PlansPage.jsx';
 import PlanDetailPage from '../modules/plans/pages/PlanDetailPage.jsx';
+import QuotationsPage from '../modules/quotations/pages/QuotationsPage.jsx';
+import QuotationDetailPage from '../modules/quotations/pages/QuotationDetailPage.jsx';
 import RoleGuard from '../modules/auth/components/RoleGuard.jsx';
 import { useAuth } from '../modules/auth/hooks/useAuth.js';
 import { 
   ArrowRight, 
   CalendarDays,
   CheckCircle2, 
+  FileText,
   KeyRound, 
   Loader2, 
   Lock, 
@@ -172,6 +175,24 @@ const DashboardHome = () => {
           <div className="workspace-card">
             <div className="workspace-card__header">
               <div className="workspace-card__icon workspace-card__icon--primary" aria-hidden="true">
+                <FileText size={20} />
+              </div>
+              <h2 className="workspace-card__title">Quotation Management</h2>
+            </div>
+            <p className="workspace-card__desc">
+              Prepare estimates, confirm client proposals, apply line-item pricing and send quotes.
+            </p>
+            <div className="workspace-card__action">
+              <Link to="/quotations" className="btn btn--primary">
+                <span>Manage Quotations</span>
+                <ArrowRight size={14} aria-hidden="true" />
+              </Link>
+            </div>
+          </div>
+
+          <div className="workspace-card">
+            <div className="workspace-card__header">
+              <div className="workspace-card__icon workspace-card__icon--primary" aria-hidden="true">
                 <Users size={20} />
               </div>
               <h2 className="workspace-card__title">User & Role Governance</h2>
@@ -182,24 +203,6 @@ const DashboardHome = () => {
             <div className="workspace-card__action">
               <Link to="/admin/users" className="btn btn--primary">
                 <span>Manage Users & Roles</span>
-                <ArrowRight size={14} aria-hidden="true" />
-              </Link>
-            </div>
-          </div>
-
-          <div className="workspace-card">
-            <div className="workspace-card__header">
-              <div className="workspace-card__icon workspace-card__icon--success" aria-hidden="true">
-                <ShieldCheck size={20} />
-              </div>
-              <h2 className="workspace-card__title">Staff Provisioning</h2>
-            </div>
-            <p className="workspace-card__desc">
-              Only Administrators have authority to create and provision internal Staff member credentials.
-            </p>
-            <div className="workspace-card__action">
-              <Link to="/admin/users" className="btn btn--secondary">
-                <span>Provision Staff Member</span>
                 <ArrowRight size={14} aria-hidden="true" />
               </Link>
             </div>
@@ -221,6 +224,24 @@ const DashboardHome = () => {
             <div className="workspace-card__action">
               <Link to="/customers" className="btn btn--primary">
                 <span>Go to Customers</span>
+                <ArrowRight size={14} aria-hidden="true" />
+              </Link>
+            </div>
+          </div>
+
+          <div className="workspace-card">
+            <div className="workspace-card__header">
+              <div className="workspace-card__icon workspace-card__icon--primary" aria-hidden="true">
+                <FileText size={20} />
+              </div>
+              <h2 className="workspace-card__title">Quotation Pipeline</h2>
+            </div>
+            <p className="workspace-card__desc">
+              Create client quotations from templates, configure line items, and convert accepted quotes.
+            </p>
+            <div className="workspace-card__action">
+              <Link to="/quotations" className="btn btn--primary">
+                <span>Prepare Quotations</span>
                 <ArrowRight size={14} aria-hidden="true" />
               </Link>
             </div>
@@ -261,40 +282,28 @@ const DashboardHome = () => {
               </Link>
             </div>
           </div>
-
-          <div className="workspace-card">
-            <div className="workspace-card__header">
-              <div className="workspace-card__icon workspace-card__icon--success" aria-hidden="true">
-                <CheckCircle2 size={20} />
-              </div>
-              <h2 className="workspace-card__title">Staff Operational Access</h2>
-            </div>
-            <p className="workspace-card__desc">
-              You are authenticated with operational staff privileges. You can manage assigned business operations.
-            </p>
-            <div className="workspace-card__action">
-              <span className="badge badge--staff">Operational Privileges Active</span>
-            </div>
-          </div>
-
-          <div className="workspace-card">
-            <div className="workspace-card__header">
-              <div className="workspace-card__icon workspace-card__icon--warning" aria-hidden="true">
-                <Lock size={20} />
-              </div>
-              <h2 className="workspace-card__title">Administrative Boundaries</h2>
-            </div>
-            <p className="workspace-card__desc">
-              Staff accounts are prohibited from provisioning other staff accounts or modifying role authorizations.
-            </p>
-            <div className="workspace-card__action">
-              <span className="text-muted text-sm">Protected by Backend RBAC</span>
-            </div>
-          </div>
         </RoleGuard>
 
         {/* Customer RBAC Cards */}
         <RoleGuard allowedRoles={['CUSTOMER']}>
+          <div className="workspace-card">
+            <div className="workspace-card__header">
+              <div className="workspace-card__icon workspace-card__icon--primary" aria-hidden="true">
+                <FileText size={20} />
+              </div>
+              <h2 className="workspace-card__title">My Quotations</h2>
+            </div>
+            <p className="workspace-card__desc">
+              Review customized proposals, price estimates, and accept agreements prepared for your account.
+            </p>
+            <div className="workspace-card__action">
+              <Link to="/quotations" className="btn btn--primary">
+                <span>Review Quotations</span>
+                <ArrowRight size={14} aria-hidden="true" />
+              </Link>
+            </div>
+          </div>
+
           <div className="workspace-card">
             <div className="workspace-card__header">
               <div className="workspace-card__icon workspace-card__icon--primary" aria-hidden="true">
@@ -328,36 +337,6 @@ const DashboardHome = () => {
                 <span>Browse Available Plans</span>
                 <ArrowRight size={14} aria-hidden="true" />
               </Link>
-            </div>
-          </div>
-
-          <div className="workspace-card">
-            <div className="workspace-card__header">
-              <div className="workspace-card__icon workspace-card__icon--primary" aria-hidden="true">
-                <User size={20} />
-              </div>
-              <h2 className="workspace-card__title">Customer Self-Service Account</h2>
-            </div>
-            <p className="workspace-card__desc">
-              Welcome to your SubManage customer account. Your account has strict customer-level data isolation.
-            </p>
-            <div className="workspace-card__action">
-              <span className="badge badge--customer">Customer Profile Active</span>
-            </div>
-          </div>
-
-          <div className="workspace-card">
-            <div className="workspace-card__header">
-              <div className="workspace-card__icon workspace-card__icon--primary" aria-hidden="true">
-                <ShieldCheck size={20} />
-              </div>
-              <h2 className="workspace-card__title">Data Privacy & Isolation</h2>
-            </div>
-            <p className="workspace-card__desc">
-              Your profile and subscription records are strictly isolated. Administrative endpoints are inaccessible.
-            </p>
-            <div className="workspace-card__action">
-              <span className="text-muted text-sm">Customer Sandbox Active</span>
             </div>
           </div>
         </RoleGuard>
@@ -468,6 +447,24 @@ export const AppRoutes = () => {
           element={
             <ProtectedRoute allowedRoles={['ADMIN', 'STAFF', 'CUSTOMER']}>
               <PlanDetailPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* ALL ROLES: Quotation Management (Customer data strictly isolated) */}
+        <Route
+          path="/quotations"
+          element={
+            <ProtectedRoute allowedRoles={['ADMIN', 'STAFF', 'CUSTOMER']}>
+              <QuotationsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/quotations/:id"
+          element={
+            <ProtectedRoute allowedRoles={['ADMIN', 'STAFF', 'CUSTOMER']}>
+              <QuotationDetailPage />
             </ProtectedRoute>
           }
         />

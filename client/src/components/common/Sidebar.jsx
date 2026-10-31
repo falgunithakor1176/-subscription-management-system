@@ -8,6 +8,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import {
   CalendarDays,
+  FileText,
   LayoutDashboard,
   LogOut,
   Package,
@@ -91,7 +92,7 @@ const Sidebar = ({ isOpen, onClose }) => {
             </Link>
           </div>
 
-          {/* Operations: Customers, Products, Plans */}
+          {/* Operations: Customers, Products, Plans, Quotations */}
           <div className="shared-sidebar__section">
             <span className="shared-sidebar__section-title">Operations</span>
 
@@ -128,6 +129,17 @@ const Sidebar = ({ isOpen, onClose }) => {
             >
               <CalendarDays size={17} aria-hidden="true" />
               <span>Subscription Plans</span>
+            </Link>
+
+            {/* Quotations (All authenticated roles) */}
+            <Link
+              to="/quotations"
+              className={`shared-sidebar__link ${isRouteActive('/quotations') ? 'shared-sidebar__link--active' : ''}`}
+              id="sidebar-nav-quotations"
+              onClick={onClose}
+            >
+              <FileText size={17} aria-hidden="true" />
+              <span>Quotations</span>
             </Link>
           </div>
 
