@@ -12,12 +12,13 @@ import {
   LogOut, 
   Search, 
   ShieldCheck, 
-  UserCircle 
+  UserCircle,
+  Users
 } from 'lucide-react';
 import { useAuth } from '../modules/auth/hooks/useAuth.js';
 
 const DashboardLayout = () => {
-  const { user, isAdmin, logout } = useAuth();
+  const { user, isAdmin, isStaff, isCustomer, logout } = useAuth();
 
   return (
     <div className="app-shell">
@@ -55,6 +56,20 @@ const DashboardLayout = () => {
             <LayoutDashboard size={18} aria-hidden="true" />
             <span>Workspace</span>
           </NavLink>
+
+          {/* Customers Management for Admin and Staff */}
+          {(isAdmin || isStaff) && (
+            <NavLink
+              to="/customers"
+              className={({ isActive }) =>
+                `app-sidebar__link ${isActive ? 'app-sidebar__link--active' : ''}`
+              }
+              id="nav-link-customers"
+            >
+              <Users size={18} aria-hidden="true" />
+              <span>Customers</span>
+            </NavLink>
+          )}
 
           {/* Admin-only RBAC Governance Link */}
           {isAdmin && (

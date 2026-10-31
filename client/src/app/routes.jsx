@@ -12,6 +12,8 @@ import RegisterPage from '../modules/auth/pages/RegisterPage.jsx';
 import UnauthorizedPage from '../modules/auth/pages/UnauthorizedPage.jsx';
 import UsersManagementPage from '../modules/auth/pages/UsersManagementPage.jsx';
 import ProfilePage from '../modules/auth/pages/ProfilePage.jsx';
+import CustomersPage from '../modules/customers/pages/CustomersPage.jsx';
+import CustomerDetailPage from '../modules/customers/pages/CustomerDetailPage.jsx';
 import RoleGuard from '../modules/auth/components/RoleGuard.jsx';
 import { useAuth } from '../modules/auth/hooks/useAuth.js';
 import { 
@@ -112,6 +114,24 @@ const DashboardHome = () => {
               <div className="workspace-card__icon workspace-card__icon--primary" aria-hidden="true">
                 <Users size={20} />
               </div>
+              <h2 className="workspace-card__title">Customer Directory</h2>
+            </div>
+            <p className="workspace-card__desc">
+              View customer profiles, add new clients, update billing addresses, and track accounts.
+            </p>
+            <div className="workspace-card__action">
+              <Link to="/customers" className="btn btn--primary">
+                <span>View Customers</span>
+                <ArrowRight size={14} aria-hidden="true" />
+              </Link>
+            </div>
+          </div>
+
+          <div className="workspace-card">
+            <div className="workspace-card__header">
+              <div className="workspace-card__icon workspace-card__icon--primary" aria-hidden="true">
+                <Users size={20} />
+              </div>
               <h2 className="workspace-card__title">User & Role Governance</h2>
             </div>
             <p className="workspace-card__desc">
@@ -146,6 +166,24 @@ const DashboardHome = () => {
 
         {/* Staff RBAC Cards */}
         <RoleGuard allowedRoles={['STAFF']}>
+          <div className="workspace-card">
+            <div className="workspace-card__header">
+              <div className="workspace-card__icon workspace-card__icon--primary" aria-hidden="true">
+                <Users size={20} />
+              </div>
+              <h2 className="workspace-card__title">Customer Management</h2>
+            </div>
+            <p className="workspace-card__desc">
+              Manage client records, add new customers, and update billing and contact information.
+            </p>
+            <div className="workspace-card__action">
+              <Link to="/customers" className="btn btn--primary">
+                <span>Go to Customers</span>
+                <ArrowRight size={14} aria-hidden="true" />
+              </Link>
+            </div>
+          </div>
+
           <div className="workspace-card">
             <div className="workspace-card__header">
               <div className="workspace-card__icon workspace-card__icon--success" aria-hidden="true">
@@ -265,6 +303,24 @@ export const AppRoutes = () => {
       >
         <Route path="/dashboard" element={<DashboardHome />} />
         <Route path="/profile" element={<ProfilePage />} />
+
+        {/* ADMIN & STAFF: Customer Management Directory & Profiles */}
+        <Route
+          path="/customers"
+          element={
+            <ProtectedRoute allowedRoles={['ADMIN', 'STAFF']}>
+              <CustomersPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/customers/:id"
+          element={
+            <ProtectedRoute allowedRoles={['ADMIN', 'STAFF', 'CUSTOMER']}>
+              <CustomerDetailPage />
+            </ProtectedRoute>
+          }
+        />
 
         {/* ADMIN only: User & RBAC Management */}
         <Route
