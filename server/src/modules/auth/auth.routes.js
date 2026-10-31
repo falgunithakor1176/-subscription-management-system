@@ -15,14 +15,19 @@ import {
   createStaffSchema,
   loginSchema,
   registerSchema,
+  updateRoleSchema,
+  updateStatusSchema,
 } from './auth.validation.js';
 import {
   createStaff,
   getMe,
+  getUsers,
   login,
   logout,
   register,
   updatePassword,
+  updateUserRole,
+  updateUserStatus,
 } from './auth.controller.js';
 
 const router = Router();
@@ -81,5 +86,23 @@ router.patch('/change-password', authenticate, validate(changePasswordSchema), u
  * ADMIN only — creates a new STAFF user account.
  */
 router.post('/staff', authenticate, adminOnly, validate(createStaffSchema), createStaff);
+
+/**
+ * GET /api/auth/users
+ * ADMIN only — lists users with pagination and search.
+ */
+router.get('/users', authenticate, adminOnly, getUsers);
+
+/**
+ * PATCH /api/auth/users/:id/role
+ * ADMIN only — updates a user's role.
+ */
+router.patch('/users/:id/role', authenticate, adminOnly, validate(updateRoleSchema), updateUserRole);
+
+/**
+ * PATCH /api/auth/users/:id/status
+ * ADMIN only — toggles user active/inactive status.
+ */
+router.patch('/users/:id/status', authenticate, adminOnly, validate(updateStatusSchema), updateUserStatus);
 
 export default router;

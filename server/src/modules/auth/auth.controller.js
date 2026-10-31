@@ -6,11 +6,14 @@
  */
 
 import { asyncHandler } from '../../utils/asyncHandler.js';
-import { sendSuccess } from '../../utils/ApiResponse.js';
+import { sendPaginated, sendSuccess } from '../../utils/ApiResponse.js';
 import {
   changePassword,
+  changeUserRole,
+  changeUserStatus,
   createStaffAccount,
   getUserProfile,
+  listUsers,
   loginUser,
   registerUser,
 } from './auth.service.js';
@@ -83,4 +86,42 @@ export const updatePassword = asyncHandler(async (req, res) => {
   await changePassword(req.user.id, req.body);
 
   return sendSuccess(res, null, AUTH_MESSAGES.PASSWORD_CHANGED);
+});
+
+/**
+ * GET /api/v1/auth/users
+ * Protected (ADMIN only) — returns paginated list of users with roles.
+ */
+export const getUsers = asyncHandler(async (req, res) => {
+  const result = await listUsers(req.user, req.query);
+
+  return sendPaginated(
+    res,
+    result.users,
+    result.total,
+    result.page,
+    result.limit,
+    'Users list retrieved successfully.'
+  );
+});
+
+/**
+ * PATCH /api/v1/auth/users/:id/role
+ * Protected (ADMIN only) — updates a user's role.
+ */
+export const updateUserRole = asyncHandler(async (req, res) => {
+  const user = await changeUserRole(req.params.id, req.body.role, req.user);
+
+  return sendSuccess(res, { user }, 'User role updated successfully.');
+});
+
+/**
+ * PATCH /api/v1/auth/users/:id/status
+ * Protected (ADMIN only) — deactivates or reactivates a user account.
+ */
+export const updateUserStatus = asyncHandler(async (req, res) => {
+  const user = await changeUserStatus(req.params.id, req.body.isActive, req.user);
+
+  const statusText = user.isActive ? 'activated' : 'deactivated';
+  return sendSuccess(res, { user }, `User account ${statusText} successfully.`);
 });

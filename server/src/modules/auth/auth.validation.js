@@ -99,3 +99,17 @@ export const changePasswordSchema = z
     message: 'Passwords do not match.',
     path: ['confirmPassword'],
   });
+
+// ─── Update role schema (Admin only) ──────────────────────────────────────────
+export const updateRoleSchema = z.object({
+  role: z.enum(['ADMIN', 'STAFF', 'CUSTOMER'], {
+    errorMap: () => ({ message: 'Invalid role. Must be ADMIN, STAFF, or CUSTOMER.' }),
+  }),
+});
+
+// ─── Update user active status schema (Admin only) ────────────────────────────
+export const updateStatusSchema = z.object({
+  isActive: z.boolean({
+    required_error: 'isActive status is required as a boolean.',
+  }),
+});

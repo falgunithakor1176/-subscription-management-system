@@ -65,6 +65,8 @@ app.get('/api/health', (req, res) => {
 });
 
 // ─── Module routes ────────────────────────────────────────────────────────────
+// Support both standard enterprise /api/v1 prefix and base /api for backward compatibility
+app.use('/api/v1/auth', authRouter);
 app.use('/api/auth', authRouter);
 
 // ─── Error handling (must be last) ───────────────────────────────────────────

@@ -10,11 +10,17 @@ import jwt from 'jsonwebtoken';
 import { env } from '../../config/env.js';
 import { ApiError } from '../../utils/ApiError.js';
 import {
+  countActiveAdmins,
+  countUsers,
   createUser,
   emailExists,
   findUserByEmail,
   findUserById,
+  findUsers,
+  findUserWithPasswordById,
   updateUserPassword,
+  updateUserRole,
+  updateUserStatus,
 } from './auth.repository.js';
 import {
   AUTH_MESSAGES,
@@ -44,15 +50,19 @@ const generateToken = (user) => {
 // ─── Service methods ──────────────────────────────────────────────────────────
 
 /**
- * Register a new STAFF or CUSTOMER user.
- * The caller (controller) must enforce who is allowed to register whom.
+ * Register a new user.
+ * Public self-registration ALWAYS creates a CUSTOMER account.
+ * Client-provided role inputs are ignored to prevent privilege escalation.
  *
- * @param {object} dto         - Validated registration data
- * @param {string} [role]      - Role to assign (defaults to STAFF for self-registration)
+ * @param {object} dto         - Validated registration data { firstName, lastName, email, password, phone? }
+ * @param {string} [role]      - Role to assign (defaults to CUSTOMER)
  * @returns {{ user, token }}
  */
-export const registerUser = async (dto, role = ROLES.STAFF) => {
+export const registerUser = async (dto, role = ROLES.CUSTOMER) => {
   const { firstName, lastName, email, password, phone } = dto;
+
+  // Enforce valid role assignment
+  const assignedRole = role === ROLES.STAFF ? ROLES.STAFF : ROLES.CUSTOMER;
 
   // Check for duplicate email
   const exists = await emailExists(email);
@@ -60,16 +70,16 @@ export const registerUser = async (dto, role = ROLES.STAFF) => {
     throw ApiError.conflict(AUTH_MESSAGES.EMAIL_ALREADY_EXISTS);
   }
 
-  // Hash password
+  // Hash password with 12 bcrypt rounds
   const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
 
   // Persist user
   const user = await createUser({
     firstName,
     lastName,
-    email,
+    email: email.trim().toLowerCase(),
     passwordHash,
-    role,
+    role: assignedRole,
     phone: phone || null,
   });
 
@@ -87,10 +97,10 @@ export const loginUser = async (dto) => {
   const { email, password } = dto;
 
   // Fetch user including passwordHash (repository returns full record)
-  const dbUser = await findUserByEmail(email);
+  const dbUser = await findUserByEmail(email.trim().toLowerCase());
 
   if (!dbUser) {
-    // Use a generic message to prevent user enumeration
+    // Generic message prevents account enumeration
     throw ApiError.unauthorized(AUTH_MESSAGES.INVALID_CREDENTIALS);
   }
 
@@ -103,7 +113,7 @@ export const loginUser = async (dto) => {
     throw ApiError.unauthorized(AUTH_MESSAGES.INVALID_CREDENTIALS);
   }
 
-  // Strip the password hash before building the response
+  // Strip the password hash before building response
   const { passwordHash: _hash, ...user } = dbUser;
 
   const token = generateToken(user);
@@ -128,7 +138,7 @@ export const getUserProfile = async (userId) => {
 
 /**
  * Create a new STAFF account. Restricted to ADMIN role only.
- * @param {object} dto          - Validated staff creation data
+ * @param {object} dto            - Validated staff creation data
  * @param {object} requestingUser - The authenticated user making the request
  * @returns {{ user, token }}
  */
@@ -148,9 +158,10 @@ export const createStaffAccount = async (dto, requestingUser) => {
 export const changePassword = async (userId, dto) => {
   const { currentPassword, newPassword } = dto;
 
-  const dbUser = await findUserByEmail(
-    (await findUserById(userId)).email
-  );
+  const dbUser = await findUserWithPasswordById(userId);
+  if (!dbUser) {
+    throw ApiError.notFound(AUTH_MESSAGES.USER_NOT_FOUND);
+  }
 
   const passwordMatch = await bcrypt.compare(currentPassword, dbUser.passwordHash);
   if (!passwordMatch) {
@@ -159,4 +170,107 @@ export const changePassword = async (userId, dto) => {
 
   const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
   await updateUserPassword(userId, passwordHash);
+};
+
+/**
+ * List all users with pagination and role filtering. (Admin only)
+ * @param {object} requestingUser
+ * @param {object} query - { page, limit, role, search }
+ * @returns {Promise<{ users: User[], total: number, page: number, totalPages: number }>}
+ */
+export const listUsers = async (requestingUser, query = {}) => {
+  if (requestingUser.role !== ROLES.ADMIN) {
+    throw ApiError.forbidden(AUTH_MESSAGES.ADMIN_REQUIRED);
+  }
+
+  const page = Math.max(1, parseInt(query.page, 10) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(query.limit, 10) || 20));
+  const skip = (page - 1) * limit;
+
+  const filters = {
+    ...(query.role && { role: query.role }),
+    ...(query.search && { search: query.search.trim() }),
+  };
+
+  const [users, total] = await Promise.all([
+    findUsers({ ...filters, skip, take: limit }),
+    countUsers(filters),
+  ]);
+
+  return {
+    users,
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  };
+};
+
+/**
+ * Change a user's role. (Admin only)
+ * Prevents demoting the last active administrator.
+ *
+ * @param {string} targetUserId
+ * @param {string} newRole
+ * @param {object} requestingUser
+ * @returns {Promise<User>}
+ */
+export const changeUserRole = async (targetUserId, newRole, requestingUser) => {
+  if (requestingUser.role !== ROLES.ADMIN) {
+    throw ApiError.forbidden('Only administrators can manage user roles.');
+  }
+
+  const targetUser = await findUserById(targetUserId);
+  if (!targetUser) {
+    throw ApiError.notFound('Target user not found.');
+  }
+
+  // Safety: Prevent removing the last active ADMIN
+  if (targetUser.role === ROLES.ADMIN && newRole !== ROLES.ADMIN) {
+    const adminCount = await countActiveAdmins();
+    if (adminCount <= 1) {
+      throw ApiError.badRequest(
+        'Operation prohibited: Cannot demote the only active Administrator.'
+      );
+    }
+  }
+
+  return updateUserRole(targetUserId, newRole);
+};
+
+/**
+ * Toggle user active status (deactivate or reactivate). (Admin only)
+ * Prevents an admin from deactivating themselves or deactivating the last active ADMIN.
+ *
+ * @param {string} targetUserId
+ * @param {boolean} isActive
+ * @param {object} requestingUser
+ * @returns {Promise<User>}
+ */
+export const changeUserStatus = async (targetUserId, isActive, requestingUser) => {
+  if (requestingUser.role !== ROLES.ADMIN) {
+    throw ApiError.forbidden('Only administrators can modify user account statuses.');
+  }
+
+  const targetUser = await findUserById(targetUserId);
+  if (!targetUser) {
+    throw ApiError.notFound('Target user not found.');
+  }
+
+  // Safety: Prevent self-deactivation
+  if (targetUserId === requestingUser.id && !isActive) {
+    throw ApiError.badRequest('Administrators cannot deactivate their own account.');
+  }
+
+  // Safety: Prevent deactivating the last active ADMIN
+  if (targetUser.role === ROLES.ADMIN && !isActive) {
+    const adminCount = await countActiveAdmins();
+    if (adminCount <= 1) {
+      throw ApiError.badRequest(
+        'Operation prohibited: Cannot deactivate the only active Administrator.'
+      );
+    }
+  }
+
+  return updateUserStatus(targetUserId, isActive);
 };

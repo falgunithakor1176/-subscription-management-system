@@ -37,3 +37,40 @@ export const ROLES = {
  * Roles that represent internal staff (not customer-facing).
  */
 export const INTERNAL_ROLES = [ROLES.ADMIN, ROLES.STAFF];
+
+/**
+ * Granular Permissions definition for RBAC
+ */
+export const PERMISSIONS = {
+  // User & Role Governance (Admin only)
+  USERS_VIEW: 'users:view',
+  USERS_MANAGE_ROLE: 'users:manage_role',
+  USERS_MANAGE_STATUS: 'users:manage_status',
+  STAFF_CREATE: 'staff:create',
+
+  // Personal Profile
+  PROFILE_VIEW: 'profile:view',
+  PASSWORD_UPDATE: 'password:update',
+};
+
+/**
+ * Role-to-Permissions Mapping
+ */
+export const ROLE_PERMISSIONS = {
+  [ROLES.ADMIN]: [
+    PERMISSIONS.USERS_VIEW,
+    PERMISSIONS.USERS_MANAGE_ROLE,
+    PERMISSIONS.USERS_MANAGE_STATUS,
+    PERMISSIONS.STAFF_CREATE,
+    PERMISSIONS.PROFILE_VIEW,
+    PERMISSIONS.PASSWORD_UPDATE,
+  ],
+  [ROLES.STAFF]: [
+    PERMISSIONS.PROFILE_VIEW,
+    PERMISSIONS.PASSWORD_UPDATE,
+  ],
+  [ROLES.CUSTOMER]: [
+    PERMISSIONS.PROFILE_VIEW,
+    PERMISSIONS.PASSWORD_UPDATE,
+  ],
+};
