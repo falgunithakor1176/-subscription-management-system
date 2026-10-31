@@ -19,6 +19,7 @@ import customerRouter from './modules/customers/customer.routes.js';
 import productRouter from './modules/products/product.routes.js';
 import planRouter from './modules/plans/plan.routes.js';
 import quotationRouter from './modules/quotations/quotation.routes.js';
+import subscriptionRouter from './modules/subscriptions/subscription.routes.js';
 
 const app = express();
 
@@ -80,6 +81,8 @@ app.use('/api/v1/plans', planRouter);
 app.use('/api/plans', planRouter);
 app.use('/api/v1/quotations', quotationRouter);
 app.use('/api/quotations', quotationRouter);
+app.use('/api/v1/subscriptions', subscriptionRouter);
+app.use('/api/subscriptions', subscriptionRouter);
 
 // ─── Error handling (must be last) ───────────────────────────────────────────
 app.use(notFound);
