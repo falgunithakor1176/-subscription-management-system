@@ -1,7 +1,7 @@
 /**
  * CustomerDetailPage.jsx
- * Detailed customer overview displaying customer identity, billing address,
- * internal notes, and linked subscription & invoice summary cards.
+ * Enterprise Customer Detail Overview inspired by Stripe Dashboard & Linear.
+ * Displays customer identity, billing address, internal notes, and linked subscription & invoice summary cards.
  */
 
 import { useEffect, useState } from 'react';
@@ -11,6 +11,7 @@ import {
   ArrowLeft,
   Building2,
   Calendar,
+  Check,
   CreditCard,
   Edit2,
   FileText,
@@ -23,6 +24,9 @@ import {
   User,
 } from 'lucide-react';
 import { useAuth } from '../../auth/hooks/useAuth.js';
+import PageHeader from '../../../components/common/PageHeader.jsx';
+import StatusBadge from '../../../components/common/StatusBadge.jsx';
+import Card from '../../../components/common/Card.jsx';
 import CustomerModal from '../components/CustomerModal.jsx';
 import {
   getCustomerByIdApi,
@@ -32,11 +36,12 @@ import {
 const CustomerDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user, isCustomer } = useAuth();
+  const { user, isAdmin, isStaff, isCustomer } = useAuth();
 
   const [customer, setCustomer] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -65,8 +70,12 @@ const CustomerDetailPage = () => {
     setIsSaving(true);
     try {
       await updateCustomerApi(id, formData);
+      setSuccessMessage('Customer profile updated successfully.');
       await fetchCustomer();
       setIsEditOpen(false);
+      setTimeout(() => setSuccessMessage(''), 4000);
+    } catch (err) {
+      setError(err?.response?.data?.message || err.message || 'Failed to update profile.');
     } finally {
       setIsSaving(false);
     }
@@ -80,180 +89,200 @@ const CustomerDetailPage = () => {
 
   if (isLoading) {
     return (
-      <div className="table-loading-state" style={{ minHeight: '300px' }}>
-        <Loader2 size={32} className="spin" />
-        <span>Loading customer profile...</span>
+      <div style={{ padding: '80px', textAlign: 'center' }}>
+        <Loader2 size={32} className="spin" style={{ margin: '0 auto 12px', color: '#4F46E5' }} />
+        <p style={{ color: '#64748B', fontSize: '14px' }}>Loading customer profile...</p>
       </div>
     );
   }
 
   if (error || !customer) {
     return (
-      <div className="customer-detail-view">
+      <div style={{ padding: '40px', maxWidth: '600px', margin: '0 auto' }}>
+        <div className="alert alert--danger">
+          <AlertCircle size={18} />
+          <span>{error || 'Customer profile not found.'}</span>
+        </div>
         <button
           type="button"
-          className="btn btn--secondary btn--sm"
-          onClick={() => navigate('/customers')}
-          style={{ marginBottom: '16px' }}
+          className="btn btn--secondary"
+          style={{ marginTop: '16px' }}
+          onClick={() => navigate(isCustomer ? '/dashboard' : '/customers')}
         >
           <ArrowLeft size={16} />
-          <span>Back to Customers</span>
+          <span>Back to {isCustomer ? 'Workspace' : 'Customers'}</span>
         </button>
-        <div className="alert-banner alert-banner--danger">
-          <AlertCircle size={16} />
-          <span>{error || 'Customer not found.'}</span>
-        </div>
       </div>
     );
   }
 
   return (
     <div className="customer-detail-view">
-      {/* Top back navigation */}
-      {!isCustomer && (
-        <button
-          type="button"
-          className="btn btn--secondary btn--sm"
-          onClick={() => navigate('/customers')}
-          style={{ marginBottom: '20px' }}
-        >
-          <ArrowLeft size={16} />
-          <span>Back to Customers</span>
-        </button>
+      {/* Shared Page Header */}
+      <PageHeader
+        title={`${customer.firstName} ${customer.lastName}`}
+        subtitle={customer.companyName ? `${customer.companyName} · Customer ID: ${customer.id}` : `Customer ID: ${customer.id}`}
+        breadcrumbs={[
+          { label: 'Workspace', to: '/dashboard' },
+          ...(!isCustomer ? [{ label: 'Customers', to: '/customers' }] : []),
+          { label: `${customer.firstName} ${customer.lastName}` },
+        ]}
+        actions={
+          <div style={{ display: 'flex', gap: '8px' }}>
+            {!isCustomer && (
+              <button
+                type="button"
+                className="btn btn--secondary"
+                onClick={() => navigate('/customers')}
+              >
+                <ArrowLeft size={16} />
+                <span>Back</span>
+              </button>
+            )}
+            <button
+              type="button"
+              className="btn btn--primary"
+              onClick={() => setIsEditOpen(true)}
+            >
+              <Edit2 size={15} />
+              <span>Edit Profile</span>
+            </button>
+          </div>
+        }
+      />
+
+      {/* Notifications */}
+      {successMessage && (
+        <div className="alert alert--success" style={{ marginBottom: '16px' }}>
+          <Check size={16} />
+          <span>{successMessage}</span>
+        </div>
       )}
 
-      {/* Profile Header Hero Card */}
-      <div className="profile-hero-card">
-        <div className="profile-hero-card__left">
-          <div className="profile-avatar-large">
-            {getInitials(customer.firstName, customer.lastName)}
-          </div>
-          <div>
-            <div className="profile-hero-card__title-row">
-              <h1 className="profile-hero-card__name">
-                {customer.firstName} {customer.lastName}
-              </h1>
-              <span
-                className={`status-pill ${
-                  customer.status === 'ACTIVE' ? 'status-pill--active' : 'status-pill--inactive'
-                }`}
-              >
-                <span className="status-pill__dot" />
-                {customer.status === 'ACTIVE' ? 'Active' : 'Inactive'}
-              </span>
+      {/* Hero Overview Card */}
+      <Card style={{ marginBottom: '24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div
+              style={{
+                width: '56px',
+                height: '56px',
+                borderRadius: '50%',
+                backgroundColor: '#EEF2FF',
+                color: '#4F46E5',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '20px',
+                fontWeight: 700,
+                flexShrink: 0,
+              }}
+            >
+              {getInitials(customer.firstName, customer.lastName)}
             </div>
-
-            {customer.companyName && (
-              <p className="profile-hero-card__company">
-                <Building2 size={16} />
-                <span>{customer.companyName}</span>
-              </p>
-            )}
-
-            <div className="profile-hero-card__tags">
-              <span className="contact-tag">
-                <Mail size={14} />
-                <span>{customer.email}</span>
-              </span>
-              {customer.phone && (
-                <span className="contact-tag">
-                  <Phone size={14} />
-                  <span>{customer.phone}</span>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#0F172A', margin: 0 }}>
+                  {customer.firstName} {customer.lastName}
+                </h2>
+                <StatusBadge status={customer.status} />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginTop: '6px', flexWrap: 'wrap' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#64748B' }}>
+                  <Mail size={14} />
+                  <span>{customer.email}</span>
                 </span>
-              )}
+                {customer.phone && (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#64748B' }}>
+                    <Phone size={14} />
+                    <span>{customer.phone}</span>
+                  </span>
+                )}
+                {customer.companyName && (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#64748B' }}>
+                    <Building2 size={14} />
+                    <span>{customer.companyName}</span>
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         </div>
-
-        <button
-          type="button"
-          className="btn btn--secondary"
-          onClick={() => setIsEditOpen(true)}
-        >
-          <Edit2 size={15} />
-          <span>Edit Profile</span>
-        </button>
-      </div>
+      </Card>
 
       {/* Grid: 2 Columns */}
-      <div className="detail-cards-grid">
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
+          gap: '24px',
+        }}
+      >
         {/* Left Column: Address and Notes */}
-        <div className="detail-card">
-          <div className="detail-card__header">
-            <MapPin size={18} className="detail-card__icon" />
-            <h3 className="detail-card__title">Billing & Physical Address</h3>
-          </div>
-          <div className="detail-card__body">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <Card title="Billing & Physical Address">
             {customer.address || customer.city || customer.country ? (
-              <div className="address-block">
-                <p className="address-line">{customer.address || 'No street address provided'}</p>
-                <p className="address-line">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '13.5px', color: '#334155' }}>
+                <p style={{ margin: 0, fontWeight: 500 }}>{customer.address || 'No street address specified'}</p>
+                <p style={{ margin: 0 }}>
                   {[customer.city, customer.state, customer.postalCode].filter(Boolean).join(', ')}
                 </p>
-                <p className="address-line address-line--country">
+                <p style={{ margin: 0, fontWeight: 600, color: '#0F172A', marginTop: '2px' }}>
                   {customer.country || 'United States'}
                 </p>
               </div>
             ) : (
-              <p className="cell-text-muted">No billing address on file.</p>
+              <p style={{ color: '#94A3B8', fontSize: '13.5px', margin: 0 }}>
+                No billing address recorded for this customer.
+              </p>
             )}
-          </div>
+          </Card>
 
-          <div className="detail-card__divider" />
-
-          <div className="detail-card__header">
-            <FileText size={18} className="detail-card__icon" />
-            <h3 className="detail-card__title">Internal Notes</h3>
-          </div>
-          <div className="detail-card__body">
-            <p className="notes-text">
-              {customer.notes || 'No internal notes recorded for this customer.'}
+          <Card title="Internal Notes">
+            <p style={{ color: customer.notes ? '#334155' : '#94A3B8', fontSize: '13.5px', lineHeight: 1.5, margin: 0 }}>
+              {customer.notes || 'No internal notes recorded for this customer profile.'}
             </p>
-          </div>
+          </Card>
         </div>
 
-        {/* Right Column: Linked Subscriptions & Financial Summary */}
-        <div className="detail-card">
-          <div className="detail-card__header">
-            <RefreshCw size={18} className="detail-card__icon" />
-            <h3 className="detail-card__title">Active Subscriptions</h3>
-          </div>
-          <div className="detail-card__body">
-            <div className="summary-empty-state">
-              <RefreshCw size={28} className="summary-empty-state__icon" />
-              <p className="summary-empty-state__title">Subscriptions Module Ready</p>
-              <p className="summary-empty-state__text">
-                Subscriptions linked to this customer will automatically appear here once Module 6 is activated.
+        {/* Right Column: Subscriptions & Financial Summary */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <Card title="Active Subscriptions">
+            <div style={{ textAlign: 'center', padding: '24px 16px' }}>
+              <RefreshCw size={32} style={{ color: '#94A3B8', margin: '0 auto 10px' }} />
+              <h4 style={{ fontSize: '14px', fontWeight: 600, color: '#0F172A', marginBottom: '4px' }}>
+                No active subscriptions yet
+              </h4>
+              <p style={{ fontSize: '12.5px', color: '#64748B', maxWidth: '300px', margin: '0 auto' }}>
+                Subscriptions, recurring contracts, and billing pipelines will appear here once provisioned.
               </p>
             </div>
-          </div>
+          </Card>
 
-          <div className="detail-card__divider" />
-
-          <div className="detail-card__header">
-            <CreditCard size={18} className="detail-card__icon" />
-            <h3 className="detail-card__title">Invoices & Payments</h3>
-          </div>
-          <div className="detail-card__body">
-            <div className="summary-empty-state">
-              <CreditCard size={28} className="summary-empty-state__icon" />
-              <p className="summary-empty-state__title">Invoices & Payments Ready</p>
-              <p className="summary-empty-state__text">
-                Invoices, recurring billing runs, and recorded payments will link directly to this profile.
+          <Card title="Invoices & Payment History">
+            <div style={{ textAlign: 'center', padding: '24px 16px' }}>
+              <CreditCard size={32} style={{ color: '#94A3B8', margin: '0 auto 10px' }} />
+              <h4 style={{ fontSize: '14px', fontWeight: 600, color: '#0F172A', marginBottom: '4px' }}>
+                No invoice records found
+              </h4>
+              <p style={{ fontSize: '12.5px', color: '#64748B', maxWidth: '300px', margin: '0 auto' }}>
+                Generated invoices, payment transactions, and receipt receipts will be logged here.
               </p>
             </div>
-          </div>
+          </Card>
         </div>
       </div>
 
-      {/* Edit Modal */}
-      <CustomerModal
-        isOpen={isEditOpen}
-        onClose={() => setIsEditOpen(false)}
-        onSave={handleUpdate}
-        initialData={customer}
-        isLoading={isSaving}
-      />
+      {/* Edit Customer Modal */}
+      {isEditOpen && (
+        <CustomerModal
+          isOpen={isEditOpen}
+          onClose={() => setIsEditOpen(false)}
+          onSave={handleUpdate}
+          initialData={customer}
+          isLoading={isSaving}
+        />
+      )}
     </div>
   );
 };

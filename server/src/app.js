@@ -16,6 +16,8 @@ import { errorHandler, notFound } from './middleware/error.middleware.js';
 // ─── Module routers ───────────────────────────────────────────────────────────
 import authRouter from './modules/auth/auth.routes.js';
 import customerRouter from './modules/customers/customer.routes.js';
+import productRouter from './modules/products/product.routes.js';
+import planRouter from './modules/plans/plan.routes.js';
 
 const app = express();
 
@@ -71,6 +73,10 @@ app.use('/api/v1/auth', authRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/v1/customers', customerRouter);
 app.use('/api/customers', customerRouter);
+app.use('/api/v1/products', productRouter);
+app.use('/api/products', productRouter);
+app.use('/api/v1/plans', planRouter);
+app.use('/api/plans', planRouter);
 
 // ─── Error handling (must be last) ───────────────────────────────────────────
 app.use(notFound);

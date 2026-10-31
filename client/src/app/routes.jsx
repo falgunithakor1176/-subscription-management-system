@@ -14,14 +14,20 @@ import UsersManagementPage from '../modules/auth/pages/UsersManagementPage.jsx';
 import ProfilePage from '../modules/auth/pages/ProfilePage.jsx';
 import CustomersPage from '../modules/customers/pages/CustomersPage.jsx';
 import CustomerDetailPage from '../modules/customers/pages/CustomerDetailPage.jsx';
+import ProductsPage from '../modules/products/pages/ProductsPage.jsx';
+import ProductDetailPage from '../modules/products/pages/ProductDetailPage.jsx';
+import PlansPage from '../modules/plans/pages/PlansPage.jsx';
+import PlanDetailPage from '../modules/plans/pages/PlanDetailPage.jsx';
 import RoleGuard from '../modules/auth/components/RoleGuard.jsx';
 import { useAuth } from '../modules/auth/hooks/useAuth.js';
 import { 
   ArrowRight, 
+  CalendarDays,
   CheckCircle2, 
   KeyRound, 
   Loader2, 
   Lock, 
+  Package,
   ShieldAlert, 
   ShieldCheck, 
   User, 
@@ -130,6 +136,42 @@ const DashboardHome = () => {
           <div className="workspace-card">
             <div className="workspace-card__header">
               <div className="workspace-card__icon workspace-card__icon--primary" aria-hidden="true">
+                <Package size={20} />
+              </div>
+              <h2 className="workspace-card__title">Products & Variants</h2>
+            </div>
+            <p className="workspace-card__desc">
+              Create enterprise products, define variant surcharges, set sales and cost pricing.
+            </p>
+            <div className="workspace-card__action">
+              <Link to="/products" className="btn btn--primary">
+                <span>Manage Products</span>
+                <ArrowRight size={14} aria-hidden="true" />
+              </Link>
+            </div>
+          </div>
+
+          <div className="workspace-card">
+            <div className="workspace-card__header">
+              <div className="workspace-card__icon workspace-card__icon--primary" aria-hidden="true">
+                <CalendarDays size={20} />
+              </div>
+              <h2 className="workspace-card__title">Subscription Plans</h2>
+            </div>
+            <p className="workspace-card__desc">
+              Configure recurring billing frequencies (Daily, Weekly, Monthly, Yearly) and renewal rules.
+            </p>
+            <div className="workspace-card__action">
+              <Link to="/plans" className="btn btn--primary">
+                <span>Manage Plans</span>
+                <ArrowRight size={14} aria-hidden="true" />
+              </Link>
+            </div>
+          </div>
+
+          <div className="workspace-card">
+            <div className="workspace-card__header">
+              <div className="workspace-card__icon workspace-card__icon--primary" aria-hidden="true">
                 <Users size={20} />
               </div>
               <h2 className="workspace-card__title">User & Role Governance</h2>
@@ -186,6 +228,42 @@ const DashboardHome = () => {
 
           <div className="workspace-card">
             <div className="workspace-card__header">
+              <div className="workspace-card__icon workspace-card__icon--primary" aria-hidden="true">
+                <Package size={20} />
+              </div>
+              <h2 className="workspace-card__title">Product Catalog</h2>
+            </div>
+            <p className="workspace-card__desc">
+              Browse products and variants to select line items for customer quotations and orders.
+            </p>
+            <div className="workspace-card__action">
+              <Link to="/products" className="btn btn--primary">
+                <span>Browse Products</span>
+                <ArrowRight size={14} aria-hidden="true" />
+              </Link>
+            </div>
+          </div>
+
+          <div className="workspace-card">
+            <div className="workspace-card__header">
+              <div className="workspace-card__icon workspace-card__icon--primary" aria-hidden="true">
+                <CalendarDays size={20} />
+              </div>
+              <h2 className="workspace-card__title">Subscription Plans</h2>
+            </div>
+            <p className="workspace-card__desc">
+              View active and configured subscription plans to prepare customer quotes.
+            </p>
+            <div className="workspace-card__action">
+              <Link to="/plans" className="btn btn--primary">
+                <span>Browse Plans</span>
+                <ArrowRight size={14} aria-hidden="true" />
+              </Link>
+            </div>
+          </div>
+
+          <div className="workspace-card">
+            <div className="workspace-card__header">
               <div className="workspace-card__icon workspace-card__icon--success" aria-hidden="true">
                 <CheckCircle2 size={20} />
               </div>
@@ -217,6 +295,42 @@ const DashboardHome = () => {
 
         {/* Customer RBAC Cards */}
         <RoleGuard allowedRoles={['CUSTOMER']}>
+          <div className="workspace-card">
+            <div className="workspace-card__header">
+              <div className="workspace-card__icon workspace-card__icon--primary" aria-hidden="true">
+                <Package size={20} />
+              </div>
+              <h2 className="workspace-card__title">Product Catalog</h2>
+            </div>
+            <p className="workspace-card__desc">
+              Browse available subscription products, services, and optional attribute add-ons.
+            </p>
+            <div className="workspace-card__action">
+              <Link to="/products" className="btn btn--primary">
+                <span>View Products</span>
+                <ArrowRight size={14} aria-hidden="true" />
+              </Link>
+            </div>
+          </div>
+
+          <div className="workspace-card">
+            <div className="workspace-card__header">
+              <div className="workspace-card__icon workspace-card__icon--primary" aria-hidden="true">
+                <CalendarDays size={20} />
+              </div>
+              <h2 className="workspace-card__title">Subscription Plans</h2>
+            </div>
+            <p className="workspace-card__desc">
+              Browse available subscription tiers, recurring billing terms, and minimum commitments.
+            </p>
+            <div className="workspace-card__action">
+              <Link to="/plans" className="btn btn--primary">
+                <span>Browse Available Plans</span>
+                <ArrowRight size={14} aria-hidden="true" />
+              </Link>
+            </div>
+          </div>
+
           <div className="workspace-card">
             <div className="workspace-card__header">
               <div className="workspace-card__icon workspace-card__icon--primary" aria-hidden="true">
@@ -318,6 +432,42 @@ export const AppRoutes = () => {
           element={
             <ProtectedRoute allowedRoles={['ADMIN', 'STAFF', 'CUSTOMER']}>
               <CustomerDetailPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* ALL ROLES: Products & Variants */}
+        <Route
+          path="/products"
+          element={
+            <ProtectedRoute allowedRoles={['ADMIN', 'STAFF', 'CUSTOMER']}>
+              <ProductsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/products/:id"
+          element={
+            <ProtectedRoute allowedRoles={['ADMIN', 'STAFF', 'CUSTOMER']}>
+              <ProductDetailPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* ALL ROLES: Subscription Plans */}
+        <Route
+          path="/plans"
+          element={
+            <ProtectedRoute allowedRoles={['ADMIN', 'STAFF', 'CUSTOMER']}>
+              <PlansPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/plans/:id"
+          element={
+            <ProtectedRoute allowedRoles={['ADMIN', 'STAFF', 'CUSTOMER']}>
+              <PlanDetailPage />
             </ProtectedRoute>
           }
         />
