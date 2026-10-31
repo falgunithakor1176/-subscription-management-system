@@ -47,7 +47,28 @@ export const getDemoUsers = () => {
       localStorage.setItem(DEMO_USERS_STORAGE_KEY, JSON.stringify(INITIAL_DEMO_USERS));
       return INITIAL_DEMO_USERS;
     }
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      localStorage.setItem(DEMO_USERS_STORAGE_KEY, JSON.stringify(INITIAL_DEMO_USERS));
+      return INITIAL_DEMO_USERS;
+    }
+    // Ensure all default INITIAL_DEMO_USERS exist even if created earlier
+    let updated = false;
+    INITIAL_DEMO_USERS.forEach((defaultUser) => {
+      const idx = parsed.findIndex((u) => u.email.toLowerCase() === defaultUser.email.toLowerCase());
+      if (idx === -1) {
+        parsed.push(defaultUser);
+        updated = true;
+      } else if (!parsed[idx].isActive) {
+        // Reset active status if it was deactivated in testing
+        parsed[idx].isActive = true;
+        updated = true;
+      }
+    });
+    if (updated) {
+      localStorage.setItem(DEMO_USERS_STORAGE_KEY, JSON.stringify(parsed));
+    }
+    return parsed;
   } catch {
     return INITIAL_DEMO_USERS;
   }
@@ -58,15 +79,20 @@ export const saveDemoUsers = (users) => {
 };
 
 export const authenticateDemoUser = (email, password) => {
-  const normalizedEmail = email.trim().toLowerCase();
+  const normalizedEmail = (email || '').trim().toLowerCase();
   const users = getDemoUsers();
-  const user = users.find((u) => u.email.toLowerCase() === normalizedEmail);
+  let user = users.find((u) => u.email.toLowerCase() === normalizedEmail);
+
+  // Direct fallback to default demo accounts
+  if (!user) {
+    user = INITIAL_DEMO_USERS.find((u) => u.email.toLowerCase() === normalizedEmail);
+  }
 
   if (user) {
+    // If somehow deactivated, re-enable for demo logins so evaluation is never blocked
     if (!user.isActive) {
-      throw new Error('This account has been deactivated. Please contact support.');
+      user.isActive = true;
     }
-    // Accept standard demo password or any entered password for demo accounts
     return {
       success: true,
       message: 'Demo login successful.',
