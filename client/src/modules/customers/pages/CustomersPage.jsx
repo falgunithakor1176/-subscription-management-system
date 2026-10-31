@@ -1,6 +1,6 @@
 /**
  * CustomersPage.jsx
- * Customer Management directory page matching SubManage design.
+ * Enterprise Customer Management directory page inspired by Stripe & Linear.
  * Features search, status filtering, pagination, "+ Add Customer" modal,
  * edit customer, view details, and deactivation.
  */
@@ -14,12 +14,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Edit2,
-  ExternalLink,
   Eye,
-  Filter,
   Loader2,
   Mail,
-  MoreVertical,
+  MapPin,
   Phone,
   Plus,
   Search,
@@ -27,6 +25,9 @@ import {
   Users,
 } from 'lucide-react';
 import { useAuth } from '../../auth/hooks/useAuth.js';
+import PageHeader from '../../../components/common/PageHeader.jsx';
+import StatusBadge from '../../../components/common/StatusBadge.jsx';
+import Card from '../../../components/common/Card.jsx';
 import CustomerModal from '../components/CustomerModal.jsx';
 import {
   createCustomerApi,
@@ -37,7 +38,7 @@ import {
 
 const CustomersPage = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isAdmin, isStaff } = useAuth();
 
   const [customers, setCustomers] = useState([]);
   const [total, setTotal] = useState(0);
@@ -69,16 +70,21 @@ const CustomersPage = () => {
       const params = {
         page,
         limit,
-        ...(search && { search }),
+        ...(search.trim() && { search: search.trim() }),
         ...(statusFilter !== 'ALL' && { status: statusFilter }),
       };
       const response = await getCustomersApi(params);
       if (response.success && response.data) {
         setCustomers(response.data.customers || []);
         setTotal(response.data.total || 0);
+      } else {
+        setCustomers([]);
+        setTotal(0);
       }
     } catch (err) {
       setError(err?.response?.data?.message || err.message || 'Failed to load customers.');
+      setCustomers([]);
+      setTotal(0);
     } finally {
       setIsLoading(false);
     }
@@ -88,7 +94,7 @@ const CustomersPage = () => {
     fetchCustomers();
   }, [page, statusFilter]);
 
-  // Handle Search submit / debounce
+  // Handle Search submit
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     setPage(1);
@@ -115,6 +121,8 @@ const CustomersPage = () => {
       setIsModalOpen(false);
       setEditingCustomer(null);
       await fetchCustomers();
+    } catch (err) {
+      setError(err?.response?.data?.message || err.message || 'Failed to save customer.');
     } finally {
       setIsSaving(false);
       setTimeout(() => setSuccessMessage(''), 4000);
@@ -140,18 +148,18 @@ const CustomersPage = () => {
     setIsDeleting(true);
     try {
       await deleteCustomerApi(deletingCustomer.id);
-      setSuccessMessage(`Customer "${deletingCustomer.firstName} ${deletingCustomer.lastName}" marked inactive.`);
+      setSuccessMessage(`Customer "${deletingCustomer.firstName} ${deletingCustomer.lastName}" deactivated.`);
       setDeletingCustomer(null);
       await fetchCustomers();
     } catch (err) {
-      setError(err.message || 'Failed to deactivate customer.');
+      setError(err?.response?.data?.message || err.message || 'Failed to deactivate customer.');
     } finally {
       setIsDeleting(false);
       setTimeout(() => setSuccessMessage(''), 4000);
     }
   };
 
-  // Select all toggle
+  // Selection handlers
   const handleSelectAll = (e) => {
     if (e.target.checked) {
       setSelectedIds(customers.map((c) => c.id));
@@ -167,68 +175,78 @@ const CustomersPage = () => {
     );
   };
 
-  const totalPages = Math.ceil(total / limit) || 1;
-
-  // Initials generator
   const getInitials = (firstName, lastName) => {
     const f = firstName ? firstName.charAt(0).toUpperCase() : '';
     const l = lastName ? lastName.charAt(0).toUpperCase() : '';
     return `${f}${l}` || 'CU';
   };
 
+  const totalPages = Math.ceil(total / limit) || 1;
+
   return (
     <div className="customers-page">
-      {/* Page Header */}
-      <div className="page-header">
-        <div>
-          <h1 className="page-header__title">Customers</h1>
-          <p className="page-header__subtitle">
-            Manage your customer database, billing profiles, and contact details.
-          </p>
-        </div>
-
-        <div className="page-header__actions">
-          <button
-            type="button"
-            className="btn btn--primary"
-            onClick={handleOpenCreate}
-            id="btn-add-customer"
-          >
-            <Plus size={16} />
-            <span>Add Customer</span>
-          </button>
-        </div>
-      </div>
+      {/* Shared Page Header */}
+      <PageHeader
+        title="Customers"
+        subtitle="Manage your customer directory, billing profiles, and client accounts."
+        breadcrumbs={[
+          { label: 'Workspace', to: '/dashboard' },
+          { label: 'Customers' },
+        ]}
+        actions={
+          (isAdmin || isStaff) && (
+            <button
+              type="button"
+              className="btn btn--primary"
+              onClick={handleOpenCreate}
+              id="btn-add-customer"
+            >
+              <Plus size={16} />
+              <span>Add Customer</span>
+            </button>
+          )
+        }
+      />
 
       {/* Notifications */}
       {successMessage && (
-        <div className="alert-banner alert-banner--success" style={{ marginBottom: '16px' }}>
+        <div className="alert alert--success" style={{ marginBottom: '16px' }}>
           <Check size={16} />
           <span>{successMessage}</span>
         </div>
       )}
 
       {error && (
-        <div className="alert-banner alert-banner--danger" style={{ marginBottom: '16px' }}>
+        <div className="alert alert--danger" style={{ marginBottom: '16px' }}>
           <AlertCircle size={16} />
           <span>{error}</span>
         </div>
       )}
 
       {/* Filter & Search Toolbar */}
-      <div className="table-toolbar">
-        <form className="search-form" onSubmit={handleSearchSubmit}>
-          <div className="input-with-icon" style={{ maxWidth: '340px' }}>
-            <Search className="input-icon" size={16} />
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: '16px',
+          marginBottom: '16px',
+          flexWrap: 'wrap',
+        }}
+      >
+        <form onSubmit={handleSearchSubmit} style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, maxWidth: '420px' }}>
+          <div style={{ position: 'relative', width: '100%' }}>
+            <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
             <input
               type="text"
               className="form-input"
-              placeholder="Search customers..."
+              placeholder="Search by name, email, company, or phone..."
+              style={{ paddingLeft: '36px', height: '36px' }}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <button type="submit" className="btn btn--secondary" style={{ padding: '8px 14px' }}>
+          <button type="submit" className="btn btn--secondary" style={{ height: '36px', padding: '0 14px' }}>
             Search
           </button>
           {search && (
@@ -236,21 +254,32 @@ const CustomersPage = () => {
               type="button"
               className="btn btn--secondary"
               onClick={handleClearSearch}
-              style={{ padding: '8px 12px' }}
+              style={{ height: '36px', padding: '0 10px' }}
             >
               Clear
             </button>
           )}
         </form>
 
-        <div className="filter-group">
-          <span className="filter-label">Status:</span>
-          <div className="filter-tabs">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontSize: '12.5px', fontWeight: 600, color: '#64748B' }}>Status:</span>
+          <div style={{ display: 'flex', gap: '4px', background: '#F1F5F9', padding: '3px', borderRadius: '8px' }}>
             {['ALL', 'ACTIVE', 'INACTIVE'].map((st) => (
               <button
                 key={st}
                 type="button"
-                className={`filter-tab-pill ${statusFilter === st ? 'filter-tab-pill--active' : ''}`}
+                style={{
+                  background: statusFilter === st ? '#FFFFFF' : 'transparent',
+                  color: statusFilter === st ? '#0F172A' : '#64748B',
+                  fontWeight: statusFilter === st ? 600 : 500,
+                  boxShadow: statusFilter === st ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '4px 10px',
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
                 onClick={() => {
                   setStatusFilter(st);
                   setPage(1);
@@ -264,22 +293,24 @@ const CustomersPage = () => {
       </div>
 
       {/* Main Table Card */}
-      <div className="table-card">
+      <Card padding="none">
         {isLoading ? (
-          <div className="table-loading-state">
-            <Loader2 size={28} className="spin" />
-            <span>Loading customers directory...</span>
+          <div style={{ padding: '60px', textAlign: 'center' }}>
+            <Loader2 size={32} className="spin" style={{ margin: '0 auto 12px', color: '#4F46E5' }} />
+            <p style={{ color: '#64748B', fontSize: '14px' }}>Loading customers directory...</p>
           </div>
         ) : customers.length === 0 ? (
-          <div className="table-empty-state">
-            <Users size={48} className="table-empty-state__icon" />
-            <h3 className="table-empty-state__title">No customers found</h3>
-            <p className="table-empty-state__text">
+          <div style={{ padding: '60px 20px', textAlign: 'center' }}>
+            <Users size={44} style={{ color: '#94A3B8', margin: '0 auto 14px' }} />
+            <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#0F172A', marginBottom: '6px' }}>
+              No customers found
+            </h3>
+            <p style={{ color: '#64748B', fontSize: '13.5px', maxWidth: '380px', margin: '0 auto 18px' }}>
               {search
                 ? `No customers match your search query "${search}".`
                 : 'Get started by creating your first customer profile.'}
             </p>
-            {!search && (
+            {!search && (isAdmin || isStaff) && (
               <button type="button" className="btn btn--primary" onClick={handleOpenCreate}>
                 <Plus size={16} />
                 <span>Add Customer</span>
@@ -287,114 +318,128 @@ const CustomersPage = () => {
             )}
           </div>
         ) : (
-          <div className="table-responsive">
-            <table className="data-table" aria-label="Customers list">
+          <div style={{ width: '100%', overflowX: 'auto' }}>
+            <table className="shared-data-table" aria-label="Customers list">
               <thead>
                 <tr>
-                  <th style={{ width: '40px' }}>
+                  <th style={{ width: '40px', textAlign: 'center' }}>
                     <input
                       type="checkbox"
                       checked={selectedIds.length === customers.length && customers.length > 0}
                       onChange={handleSelectAll}
                       aria-label="Select all customers"
+                      style={{ cursor: 'pointer' }}
                     />
                   </th>
-                  <th>Customer</th>
-                  <th>Email</th>
-                  <th>Phone</th>
-                  <th>Location</th>
-                  <th>Status</th>
-                  <th style={{ textAlign: 'right', paddingRight: '20px' }}>Actions</th>
+                  <th style={{ width: '28%' }}>Customer</th>
+                  <th style={{ width: '24%' }}>Contact Email</th>
+                  <th style={{ width: '16%' }}>Phone</th>
+                  <th style={{ width: '14%' }}>Location</th>
+                  <th style={{ width: '10%' }}>Status</th>
+                  <th style={{ width: '8%', textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {customers.map((c) => (
                   <tr
                     key={c.id}
-                    className="table-row-clickable"
+                    className="shared-data-table__row--clickable"
                     onClick={() => navigate(`/customers/${c.id}`)}
                   >
-                    <td onClick={(e) => e.stopPropagation()}>
+                    <td onClick={(e) => e.stopPropagation()} style={{ textAlign: 'center' }}>
                       <input
                         type="checkbox"
                         checked={selectedIds.includes(c.id)}
                         onChange={(e) => handleSelectOne(c.id, e)}
                         aria-label={`Select ${c.firstName} ${c.lastName}`}
+                        style={{ cursor: 'pointer' }}
                       />
                     </td>
                     <td>
-                      <div className="customer-cell">
-                        <div className="customer-avatar">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div
+                          style={{
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '50%',
+                            backgroundColor: '#EEF2FF',
+                            color: '#4F46E5',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '11.5px',
+                            fontWeight: 700,
+                            flexShrink: 0,
+                          }}
+                        >
                           {getInitials(c.firstName, c.lastName)}
                         </div>
-                        <div className="customer-cell__meta">
-                          <span className="customer-cell__name">
+                        <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                          <span style={{ fontWeight: 600, color: '#0F172A', fontSize: '13.5px' }}>
                             {c.firstName} {c.lastName}
                           </span>
                           {c.companyName && (
-                            <span className="customer-cell__company">{c.companyName}</span>
+                            <span
+                              style={{
+                                color: '#64748B',
+                                fontSize: '12px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                              }}
+                            >
+                              <Building2 size={12} />
+                              <span>{c.companyName}</span>
+                            </span>
                           )}
                         </div>
                       </div>
                     </td>
                     <td>
-                      <div className="cell-with-icon">
-                        <Mail size={14} className="cell-icon" />
-                        <span>{c.email}</span>
-                      </div>
+                      <span style={{ color: '#334155', fontSize: '13px' }}>{c.email}</span>
                     </td>
                     <td>
-                      {c.phone ? (
-                        <div className="cell-with-icon">
-                          <Phone size={14} className="cell-icon" />
-                          <span>{c.phone}</span>
-                        </div>
-                      ) : (
-                        <span className="cell-text-muted">—</span>
-                      )}
+                      <span style={{ color: '#64748B', fontSize: '13px' }}>{c.phone || '—'}</span>
                     </td>
                     <td>
-                      <span className="cell-text-muted">
-                        {[c.city, c.state].filter(Boolean).join(', ') || c.country || '—'}
+                      <span style={{ color: '#64748B', fontSize: '13px' }}>
+                        {[c.city, c.country].filter(Boolean).join(', ') || '—'}
                       </span>
                     </td>
                     <td>
-                      <span
-                        className={`status-pill ${
-                          c.status === 'ACTIVE' ? 'status-pill--active' : 'status-pill--inactive'
-                        }`}
-                      >
-                        <span className="status-pill__dot" />
-                        {c.status === 'ACTIVE' ? 'Active' : 'Inactive'}
-                      </span>
+                      <StatusBadge status={c.status} size="sm" />
                     </td>
-                    <td style={{ textAlign: 'right', paddingRight: '20px' }}>
-                      <div className="action-button-group" onClick={(e) => e.stopPropagation()}>
+                    <td style={{ textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '4px' }}>
                         <button
                           type="button"
-                          className="table-action-btn"
-                          title="View Details"
+                          className="btn-icon"
+                          title="View Profile"
                           onClick={() => navigate(`/customers/${c.id}`)}
                         >
                           <Eye size={15} />
                         </button>
-                        <button
-                          type="button"
-                          className="table-action-btn"
-                          title="Edit Customer"
-                          onClick={(e) => handleOpenEdit(c, e)}
-                        >
-                          <Edit2 size={15} />
-                        </button>
-                        {c.status === 'ACTIVE' && (
-                          <button
-                            type="button"
-                            className="table-action-btn table-action-btn--danger"
-                            title="Deactivate Customer"
-                            onClick={() => setDeletingCustomer(c)}
-                          >
-                            <Trash2 size={15} />
-                          </button>
+                        {(isAdmin || isStaff) && (
+                          <>
+                            <button
+                              type="button"
+                              className="btn-icon"
+                              title="Edit Customer"
+                              onClick={(e) => handleOpenEdit(c, e)}
+                            >
+                              <Edit2 size={15} />
+                            </button>
+                            {c.status !== 'INACTIVE' && (
+                              <button
+                                type="button"
+                                className="btn-icon btn-icon--danger"
+                                title="Deactivate Customer"
+                                onClick={() => setDeletingCustomer(c)}
+                              >
+                                <Trash2 size={15} />
+                              </button>
+                            )}
+                          </>
                         )}
                       </div>
                     </td>
@@ -405,67 +450,65 @@ const CustomersPage = () => {
           </div>
         )}
 
-        {/* Pagination Footer */}
+        {/* Pagination summary */}
         {!isLoading && customers.length > 0 && (
-          <div className="table-pagination">
-            <span className="table-pagination__info">
-              Showing <strong>{(page - 1) * limit + 1}</strong> to{' '}
-              <strong>{Math.min(page * limit, total)}</strong> of <strong>{total}</strong> customers
+          <div className="shared-data-table__pagination">
+            <span>
+              Showing {customers.length} of {total} customers
             </span>
-
-            <div className="table-pagination__controls">
+            <div className="shared-data-table__pagination-buttons">
               <button
                 type="button"
                 className="btn btn--secondary btn--sm"
                 disabled={page <= 1}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
               >
-                <ChevronLeft size={16} />
-                <span>Previous</span>
+                Previous
               </button>
-              <span className="pagination-page-indicator">
-                Page {page} of {totalPages}
-              </span>
               <button
                 type="button"
                 className="btn btn--secondary btn--sm"
                 disabled={page >= totalPages}
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                onClick={() => setPage((p) => p + 1)}
               >
-                <span>Next</span>
-                <ChevronRight size={16} />
+                Next
               </button>
             </div>
           </div>
         )}
-      </div>
+      </Card>
 
-      {/* Add / Edit Customer Modal */}
-      <CustomerModal
-        isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-          setEditingCustomer(null);
-        }}
-        onSave={handleSaveCustomer}
-        initialData={editingCustomer}
-        isLoading={isSaving}
-      />
+      {/* Customer Modal (Create / Edit) */}
+      {isModalOpen && (
+        <CustomerModal
+          isOpen={isModalOpen}
+          onClose={() => {
+            setIsModalOpen(false);
+            setEditingCustomer(null);
+          }}
+          onSave={handleSaveCustomer}
+          initialData={editingCustomer}
+          isLoading={isSaving}
+        />
+      )}
 
-      {/* Deactivate Confirm Dialog */}
+      {/* Deactivate Confirm Modal */}
       {deletingCustomer && (
-        <div className="modal-backdrop" onClick={() => setDeletingCustomer(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '440px' }}>
+        <div className="modal-backdrop" role="dialog" aria-modal="true">
+          <div className="modal-content" style={{ maxWidth: '440px' }}>
             <div className="modal-header">
               <h3 className="modal-header__title">Deactivate Customer</h3>
             </div>
             <div className="modal-body">
-              <p style={{ color: '#475569', fontSize: '14px', lineHeight: '1.6' }}>
+              <p style={{ fontSize: '14px', color: '#334155', lineHeight: 1.5 }}>
                 Are you sure you want to deactivate{' '}
                 <strong>
                   {deletingCustomer.firstName} {deletingCustomer.lastName}
                 </strong>
-                ? Existing subscriptions and invoices will be preserved, but the customer account will be set to Inactive.
+                ?
+              </p>
+              <p style={{ fontSize: '13px', color: '#64748B', marginTop: '8px' }}>
+                Deactivating sets their status to Inactive. Existing historical invoices and subscription records remain preserved.
               </p>
             </div>
             <div className="modal-footer">
@@ -483,7 +526,7 @@ const CustomersPage = () => {
                 onClick={handleConfirmDelete}
                 disabled={isDeleting}
               >
-                {isDeleting ? <Loader2 size={16} className="spin" /> : 'Deactivate'}
+                {isDeleting ? 'Deactivating...' : 'Confirm Deactivate'}
               </button>
             </div>
           </div>
